@@ -616,8 +616,6 @@ namespace Playnite.ViewModels
 
                 Logger.Info($"Starting Library Install Size scan");
                 ProgressStatus = Resources.GetString(progressMessageLocKey);
-                var errorStrings = new List<string>();
-                var errorsCount = 0;
                 using (Database.Games.BufferedUpdate())
                 {
                     foreach (var game in games)
@@ -639,11 +637,7 @@ namespace Playnite.ViewModels
                         }
                         catch (Exception e)
                         {
-                            errorsCount++;
-                            if (errorStrings.Count < 10)
-                            {
-                                errorStrings.Add($"{game.Name}: {e.Message}");
-                            }
+                            Logger.Error(e, $"Failed to calculate install size for {game.InstallDirectory}");
                         }
 
                         ProgressValue++;
@@ -651,29 +645,6 @@ namespace Playnite.ViewModels
                 }
 
                 Logger.Info($"Finished Library Install Size scan");
-                if (errorsCount > 0)
-                {
-                    var errorMessage = ResourceProvider.GetString("LOCCalculateGamesSizeErrorMessage").Format(errorsCount)
-                        + $"\n\n" + string.Join("\n", errorStrings);
-                    if (errorsCount > 10)
-                    {
-                        errorMessage += "\n...";
-                    }
-
-                    App.Notifications.Add(new NotificationMessage(
-                            $"LibUpdateScanSizeError - {DateTime.Now}",
-                            ResourceProvider.GetString("LOCCalculateGamesSizeErrorMessage").Format(errorsCount),
-                            NotificationType.Error,
-                            () =>
-                            {
-                                Dialogs.ShowMessage(
-                                    errorMessage,
-                                    Resources.GetString("LOCCalculateGameSizeErrorCaption"),
-                                    MessageBoxButton.OK, MessageBoxImage.Error);
-                            }
-                        )
-                    );
-                }
             }
             finally
             {
